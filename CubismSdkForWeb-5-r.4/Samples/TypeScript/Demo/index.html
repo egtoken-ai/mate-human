@@ -3,11 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>fay live2d工程</title>
+  <title>安擎 Live 2D 数字人Demo</title>
   <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     html, body {
       overflow: hidden;
-      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: #000;
     }
     html {
       overscroll-behavior-x: none;
@@ -21,31 +30,169 @@
       width: 100vw;
       height: 100vh;
     }
-    /* ✅ 切换按钮样式 */
-    #desk-toggle {
+
+    /* ===== Top Bar ===== */
+    #top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+    }
+    #top-bar > * {
+      pointer-events: auto;
+    }
+
+    #app-title {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    #conn-status {
+      display: flex;
+      align-items: center;
+      color: rgba(255,255,255,0.85);
+      font-size: 12px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    #conn-status .status-dot { background: #ff5722; }
+    #conn-status.connected .status-dot { background: #4caf50; }
+    #conn-status.connecting .status-dot { background: #ff9800; animation: pulse 1s infinite; }
+
+    #speak-indicator {
+      display: none;
+      align-items: center;
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    #speak-indicator.active { display: flex; }
+    #speak-indicator .status-dot { background: #2196f3; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ===== Speech Bubble ===== */
+    #speech-bubble {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      max-width: min(600px, 80vw);
+      min-width: 120px;
+      padding: 14px 20px;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1.6;
+      text-align: center;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      opacity: 0;
+      transform: translateX(-50%) translateY(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    #speech-bubble.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(0,0,0,0.7);
+    }
+
+    /* ===== Bottom Controls ===== */
+    #bottom-controls {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      color: #fff;
-      background-color: #007bff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
       z-index: 1000;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-      transition: background-color 0.3s;
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
-    #desk-toggle:hover {
-      background-color: #0056b3;
+
+    .ctrl-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
-    #desk-toggle:active {
-      transform: translateY(2px);
+    .ctrl-btn:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: rgba(255,255,255,0.3);
     }
-    #desk-toggle.active {
-      background-color: #28a745;
+    .ctrl-btn:active {
+      transform: translateY(1px);
+      background: rgba(255,255,255,0.08);
+    }
+    .ctrl-btn.active {
+      background: rgba(76,175,80,0.55);
+      border-color: rgba(76,175,80,0.7);
+    }
+    .ctrl-btn.active:hover {
+      background: rgba(76,175,80,0.7);
+    }
+
+    #desk-toggle .icon { font-size: 16px; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 480px) {
+      #top-bar { padding: 10px 14px; gap: 8px; }
+      #app-title { font-size: 13px; }
+      #conn-status { font-size: 11px; }
+      #speech-bubble {
+        bottom: 72px;
+        max-width: 90vw;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      #bottom-controls { right: 14px; bottom: 14px; }
+      .ctrl-btn { padding: 8px 14px; font-size: 13px; }
     }
   </style>
   <!-- Live2DCubismCore script -->
@@ -54,6 +201,19 @@
   <script src = "./src/main.ts" type="module"></script>
 </head>
 <body>
-  <button id="desk-toggle">🪑 吧台模式</button>
+  <!-- Top Bar -->
+  <div id="top-bar">
+    <span id="app-title">小安</span>
+    <span id="conn-status"><span class="status-dot"></span>未连接</span>
+    <span id="speak-indicator"><span class="status-dot"></span>说话中</span>
+  </div>
+
+  <!-- Speech Bubble -->
+  <div id="speech-bubble"></div>
+
+  <!-- Bottom Controls -->
+  <div id="bottom-controls">
+    <button id="desk-toggle" class="ctrl-btn"><span class="icon">🪑</span> 吧台模式</button>
+  </div>
 </body>
 </html>

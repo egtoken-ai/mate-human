@@ -1078,6 +1078,7 @@ export class LAppModel extends CubismUserModel {
     this._fayAudioStreamId = 0;
     this._fayAudioRecoveryTimer = null;
     this._fayAudioUnlockButton = null;
+    this._currentDisplayText = '';
   }
 
   private _subdelegate: LAppSubdelegate;
@@ -1092,6 +1093,7 @@ export class LAppModel extends CubismUserModel {
   _fayAudioStreamId: number;
   _fayAudioRecoveryTimer: number | null;
   _fayAudioUnlockButton: HTMLButtonElement | null;
+  _currentDisplayText: string;
 
   _modelSetting: ICubismModelSetting; // モデルセッティング情報
   _modelHomeDir: string; // モデルセッティングが置かれたディレクトリ
@@ -1322,6 +1324,7 @@ export class LAppModel extends CubismUserModel {
 
     this.stopActiveFayAudio(false);
     this._fayAudioPlaying = true;
+    this._currentDisplayText = nextSegment.text;
 
     const audio = new Audio(nextSegment.url);
     audio.preload = 'auto';
@@ -1352,6 +1355,9 @@ export class LAppModel extends CubismUserModel {
         this._activeFayAudio = null;
       }
       this._fayAudioPlaying = false;
+      if (this._fayAudioQueue.length === 0) {
+        this._currentDisplayText = '';
+      }
       void this.playNextQueuedFayAudio();
     };
 

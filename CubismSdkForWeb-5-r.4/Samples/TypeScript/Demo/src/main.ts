@@ -21,8 +21,77 @@ window.addEventListener(
 
     LAppDelegate.getInstance().run();
 
-    // ✅ 添加吧台切换按钮事件监听
+    // ===== UI State Bindings =====
+    const connStatusEl = document.getElementById('conn-status');
+    const speakIndicatorEl = document.getElementById('speak-indicator');
+    const speechBubbleEl = document.getElementById('speech-bubble');
     const deskToggleBtn = document.getElementById('desk-toggle') as HTMLButtonElement;
+
+    let prevSpeaking = false;
+    let prevText = '';
+
+    function updateUI(): void {
+      const delegate = LAppDelegate.getInstance().getSubdelegates().at(0);
+      if (!delegate) return;
+
+      const live2dMgr = delegate.getLive2DManager();
+      if (!live2dMgr) return;
+
+      // Access the first model
+      const models = (live2dMgr as any)._models;
+      if (!models || models.getSize() === 0) return;
+
+      const model = models.at(0);
+      if (!model) return;
+
+      // --- Connection status ---
+      const fayConnected = model._fayClient?.isConnected?.();
+      if (connStatusEl) {
+        if (fayConnected) {
+          connStatusEl.className = 'connected';
+          connStatusEl.innerHTML = '<span class="status-dot"></span>已连接';
+        } else {
+          connStatusEl.className = '';
+          connStatusEl.innerHTML = '<span class="status-dot"></span>未连接';
+        }
+      }
+
+      // --- Speaking indicator ---
+      const speaking = !!model._fayAudioPlaying;
+      if (speakIndicatorEl) {
+        speakIndicatorEl.className = speaking ? 'active' : '';
+      }
+
+      // --- Speech bubble ---
+      const text = model._currentDisplayText || '';
+      if (speechBubbleEl) {
+        if (text && text !== prevText) {
+          speechBubbleEl.textContent = text;
+          speechBubbleEl.classList.add('visible');
+        } else if (!text) {
+          speechBubbleEl.classList.remove('visible');
+        }
+      }
+      prevText = text;
+
+      // --- Desk toggle button state (from view) ---
+      const view = delegate.getView();
+      if (deskToggleBtn && view) {
+        const deskEnabled = view.isDeskEnabled();
+        if (deskEnabled) {
+          deskToggleBtn.classList.add('active');
+          deskToggleBtn.innerHTML = '<span class="icon">✓</span> 吧台开启';
+        } else {
+          deskToggleBtn.classList.remove('active');
+          deskToggleBtn.innerHTML = '<span class="icon">🪑</span> 吧台模式';
+        }
+      }
+    }
+
+    // Poll UI state every 200ms
+    setInterval(updateUI, 200);
+
+    // ✅ 添加吧台切换按钮事件监听
     if (deskToggleBtn) {
       deskToggleBtn.addEventListener('click', () => {
         // 获取第一个 delegate 的 view
@@ -31,15 +100,6 @@ window.addEventListener(
           const view = delegate.getView();
           if (view) {
             view.toggleDesk();
-
-            // 更新按钮样式和文本
-            if (view.isDeskEnabled()) {
-              deskToggleBtn.classList.add('active');
-              deskToggleBtn.textContent = '✓ 吧台开启';
-            } else {
-              deskToggleBtn.classList.remove('active');
-              deskToggleBtn.textContent = '🪑 吧台模式';
-            }
           }
         }
       });
