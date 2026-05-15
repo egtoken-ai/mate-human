@@ -26,6 +26,7 @@ window.addEventListener(
     const speakIndicatorEl = document.getElementById('speak-indicator');
     const speechBubbleEl = document.getElementById('speech-bubble');
     const deskToggleBtn = document.getElementById('desk-toggle') as HTMLButtonElement;
+    const unlockAudioBtn = document.getElementById('unlock-audio') as HTMLButtonElement;
 
     let prevSpeaking = false;
     let prevText = '';
@@ -86,15 +87,33 @@ window.addEventListener(
           deskToggleBtn.innerHTML = '<span class="icon">🪑</span> 吧台模式';
         }
       }
+
+      // --- Unlock audio button state ---
+      if (unlockAudioBtn) {
+        if (model._fayAudioBlockedByAutoplay) {
+          unlockAudioBtn.style.display = '';
+          unlockAudioBtn.innerHTML = '<span class="icon">🔊</span> 开启声音';
+          unlockAudioBtn.classList.add('active');
+        } else if (model._audioMuted) {
+          unlockAudioBtn.style.display = '';
+          unlockAudioBtn.innerHTML = '<span class="icon">🔇</span> 声音已关闭';
+          unlockAudioBtn.classList.remove('active');
+        } else if (model._fayClient?.isConnected?.()) {
+          unlockAudioBtn.style.display = '';
+          unlockAudioBtn.innerHTML = '<span class="icon">🔊</span> 声音已开启';
+          unlockAudioBtn.classList.remove('active');
+        } else {
+          unlockAudioBtn.style.display = 'none';
+        }
+      }
     }
 
     // Poll UI state every 200ms
     setInterval(updateUI, 200);
 
-    // ✅ 添加吧台切换按钮事件监听
+    // 吧台切换按钮
     if (deskToggleBtn) {
       deskToggleBtn.addEventListener('click', () => {
-        // 获取第一个 delegate 的 view
         const delegate = LAppDelegate.getInstance().getSubdelegates().at(0);
         if (delegate) {
           const view = delegate.getView();
@@ -104,6 +123,24 @@ window.addEventListener(
         }
       });
       console.log('[Main] ✓ 吧台切换按钮已初始化');
+    }
+
+    // 声音开关按钮
+    if (unlockAudioBtn) {
+      unlockAudioBtn.addEventListener('click', () => {
+        const delegate = LAppDelegate.getInstance().getSubdelegates().at(0);
+        if (delegate) {
+          const live2dMgr = delegate.getLive2DManager();
+          const models = (live2dMgr as any)._models;
+          if (models && models.getSize() > 0) {
+            const model = models.at(0);
+            if (model?.toggleMute) {
+              model.toggleMute();
+            }
+          }
+        }
+      });
+      console.log('[Main] ✓ 声音开关按钮已初始化');
     }
   },
   { passive: true }

@@ -620,6 +620,25 @@ export class LAppModel extends CubismUserModel {
       }
     }
 
+    // 说话时定期播放随机手势动作（每4-7秒一次）
+    if (this._fayAudioPlaying && this._modelSetting) {
+      const now = Date.now();
+      const interval = 4000 + Math.random() * 3000; // 4-7秒随机间隔
+      if (now - this._lastSpeakingGestureTime > interval) {
+        this._lastSpeakingGestureTime = now;
+        const motionCount = this._modelSetting.getMotionCount(LAppDefine.MotionGroupTapBody);
+        if (motionCount > 0) {
+          // 选取适合说话时的自然手势动作（排除幅度过大的动作）
+          const gestureCandidates = [1, 3, 4, 5, 9, 10, 11, 12, 19, 22, 23, 24];
+          const available = gestureCandidates.filter(n => n < motionCount);
+          if (available.length > 0) {
+            const no = available[Math.floor(Math.random() * available.length)];
+            this.startMotion(LAppDefine.MotionGroupTapBody, no, LAppDefine.PriorityNormal);
+          }
+        }
+      }
+    }
+
     // ポーズの設定
     if (this._pose != null) {
       this._pose.updateParameters(this._model, deltaTimeSeconds);
@@ -1078,7 +1097,9 @@ export class LAppModel extends CubismUserModel {
     this._fayAudioStreamId = 0;
     this._fayAudioRecoveryTimer = null;
     this._fayAudioUnlockButton = null;
+    this._audioMuted = false;
     this._currentDisplayText = '';
+    this._lastSpeakingGestureTime = 0;
   }
 
   private _subdelegate: LAppSubdelegate;
@@ -1094,6 +1115,8 @@ export class LAppModel extends CubismUserModel {
   _fayAudioRecoveryTimer: number | null;
   _fayAudioUnlockButton: HTMLButtonElement | null;
   _currentDisplayText: string;
+  _audioMuted: boolean;
+  _lastSpeakingGestureTime: number;
 
   _modelSetting: ICubismModelSetting; // モデルセッティング情報
   _modelHomeDir: string; // モデルセッティングが置かれたディレクトリ
@@ -1279,7 +1302,7 @@ export class LAppModel extends CubismUserModel {
   }
 
   private async playNextQueuedFayAudio(): Promise<void> {
-    if (this._fayAudioPlaying || this._fayAudioBlockedByAutoplay) {
+    if (this._fayAudioPlaying || this._fayAudioBlockedByAutoplay || this._audioMuted) {
       return;
     }
 
@@ -1714,6 +1737,30 @@ export class LAppModel extends CubismUserModel {
   private getRandomMotion(candidates: number[]): number {
     if (candidates.length === 0) return 0;
     return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  /**
+   * 切换静音/取消静音
+   */
+  public toggleMute(): void {
+    if (this._fayAudioBlockedByAutoplay) {
+      // 被浏览器拦截时，点击按钮解锁
+      this.resumeQueuedFayAudio('unlock-button', true);
+      return;
+    }
+
+    this._audioMuted = !this._audioMuted;
+
+    if (this._audioMuted) {
+      // 静音：停止当前音频并清空队列
+      this.stopActiveFayAudio(true);
+      this._fayAudioQueue = [];
+      console.log('[LAppModel] 音频已静音');
+    } else {
+      // 取消静音：继续播放
+      console.log('[LAppModel] 音频已取消静音');
+      this.resumeQueuedFayAudio('unmute');
+    }
   }
 
   /**
