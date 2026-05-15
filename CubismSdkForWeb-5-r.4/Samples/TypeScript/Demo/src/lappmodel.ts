@@ -1546,90 +1546,20 @@ export class LAppModel extends CubismUserModel {
     // 设置消息回调
     this._fayClient.onMessage((message) => {
       console.log('[LAppModel] 收到Fay消息:', JSON.stringify(message, null, 2));
+      console.log('[LAppModel] Data.Key:', message.Data?.Key, '| Data.Lips:', message.Data?.Lips?.length ?? 'undefined', '个');
 
-      if (message.Data && message.Data.Lips) {
-        /*
-        console.log(`[LAppModel] ✓ 收到嘴型数据，文字: "${message.Data.Text}", 嘴型数据: ${message.Data.Lips.length}个`);
-
-        // ========== 动作控制：优先级 关键词 > 情感 > 随机 ==========
-        // 1. 优先使用关键词指定动作
-        const standardActionMotionApplied = this.applyStandardActionMotion(
-        //   message.Data.Action
-        // );
-        // const standardActionExpressionApplied = this.applyStandardActionExpression(
-        //   message.Data.Action
-        // );
-
-        const standardActionMotionApplied = this.applyStandardActionMotion(
-          message.Data.Action
-        );
-        const standardActionExpressionApplied = this.applyStandardActionExpression(
-          message.Data.Action
-        );
-
-        if (!standardActionMotionApplied && message.Data.MotionNo !== undefined) {
-          let motionGroup = message.Data.MotionGroup || '';
-          let motionCount = this._modelSetting.getMotionCount(motionGroup);
-
-          // ✅ 如果指定组为空或没有动作，尝试使用 TapBody 组作为fallback
-          if (motionCount === 0) {
-            console.warn(`[LAppModel] ⚠️ 动作组"${motionGroup}"为空，尝试使用TapBody组`);
-            motionGroup = LAppDefine.MotionGroupTapBody;
-            motionCount = this._modelSetting.getMotionCount(motionGroup);
-          }
-
-          console.log(`[LAppModel] 🎯 关键词动作: [组"${motionGroup}", 动作${message.Data.MotionNo}/${motionCount}]`);
-
-          // 如果还是没有动作，跳过
-          if (motionCount === 0) {
-            console.error(`[LAppModel] ❌ 所有动作组都为空，无法播放动作`);
-            return;
-          }
-
-          // ✅ 验证动作编号是否在有效范围内
-          let targetMotionNo = Math.max(0, message.Data.MotionNo - 1);
-          if (targetMotionNo < 0 || targetMotionNo >= motionCount) {
-            console.error(`[LAppModel] ❌ 动作编号越界: ${targetMotionNo}，有效范围: 0-${motionCount - 1}，使用动作0`);
-            targetMotionNo = 0; // 使用第一个动作作为fallback
-          }
-
-          // 验证动作是否已预加载
-          const motionName = `${motionGroup}_${targetMotionNo}`;
-          const isLoaded = this._motions.getValue(motionName) !== null;
-          console.log(`[LAppModel] 动作 ${motionName} 已预加载: ${isLoaded}`);
-
-          if (!isLoaded) {
-            console.warn(`[LAppModel] ⚠️ 动作 ${motionName} 未预加载，尝试动态加载`);
-          }
-
-          // 关键词动作需要能够打断 Idle，否则对话期间几乎不会看到动作反馈。
-          const motionHandle = this.startMotion(motionGroup, targetMotionNo, LAppDefine.PriorityForce);
-          if (motionHandle === InvalidMotionQueueEntryHandleValue) {
-            console.error(`[LAppModel] ❌ 动作启动失败: [组"${motionGroup}", 动作${targetMotionNo}]`);
-          } else {
-            console.log(`[LAppModel] ✓ 动作已启动: Handle=${motionHandle}`);
-          }
-        }
-        // 2. 没有关键词，使用情感匹配动作
-        else if (!standardActionMotionApplied && message.Data.Sentiment !== undefined) {
-          this.setMotionBySentiment(message.Data.Sentiment);
-        }
-        // 3. 都没有，保持当前的随机待机（不干预）
-
-        // ========== 情感 → 表情映射 ==========
-        // ⚠️ 注意：使用 setParameterValueById（绝对设置）确保口型同步覆盖表情对嘴部的影响
-        if (!standardActionExpressionApplied && message.Data.Sentiment !== undefined) {
-          this.setExpressionBySentiment(message.Data.Sentiment);
-        }
-
-        // ========== 对话结束时的动作复位 ==========
-        */
+      // 无论是否有Lips数据，都处理文本、动作和表情
+      // 但Lips数据是处理动作/表情的先决条件（Fay在发送音频时总是同时发送Lips）
+      if (message.Data) {
+        // --- 动作处理 ---
         const actionMotionApplied = this.applyActionMotion(
           message.Data.Action
         );
         const actionExpressionApplied = this.applyActionExpression(
           message.Data.Action
         );
+        console.log('[LAppModel] 动作结果: applyActionMotion=', actionMotionApplied, '| applyActionExpression=', actionExpressionApplied, '| MotionNo=', message.Data.MotionNo, '| Sentiment=', message.Data.Sentiment);
+
         const legacyMotionApplied =
           !actionMotionApplied &&
           message.Data.MotionNo !== undefined &&
@@ -1644,6 +1574,7 @@ export class LAppModel extends CubismUserModel {
           !legacyMotionApplied &&
           message.Data.Sentiment !== undefined
         ) {
+          console.log('[LAppModel] 使用情感回退驱动动作, Sentiment=', message.Data.Sentiment);
           this.setMotionBySentiment(message.Data.Sentiment);
         }
 
@@ -1655,20 +1586,19 @@ export class LAppModel extends CubismUserModel {
         }
 
         if (message.Data.IsEnd === 1) {
-          console.log('[LAppModel] 🔄 对话结束，等待当前动作完成');
-          // ⚠️ 不要立即停止动作！让当前动作自然播放完成
-          // update()会在动作完成后自动启动idle动作
-          // this._motionManager.stopAllMotions(); // ❌ 这会立即停止正在播放的动作
-
-          // ✅ 对话结束后恢复开心表情
-          console.log('[LAppModel] 😊 对话结束，恢复开心表情 F01');
+          console.log('[LAppModel] 对话结束，恢复开心表情 F01');
           this.setExpression('F01');
         }
 
-        // ========== 网页端音频与嘴型同步 ==========
+        // --- 文字显示 ---
+        if (message.Data.Text) {
+          this._currentDisplayText = message.Data.Text;
+        }
+
+        // --- 音频与嘴型同步 ---
         this.queueFayAudio(message);
       } else {
-        console.warn('[LAppModel] 收到消息但没有Lips数据');
+        console.warn('[LAppModel] 收到消息但无Data字段');
       }
     });
 
