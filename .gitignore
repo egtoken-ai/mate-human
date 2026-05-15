@@ -1,0 +1,30 @@
+# Claude Code
+.claude/
+
+# Node modules
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+nul
+*.tmp
+temp/
+
+# Course packages
+fay-*-course/
+fay-*-course.zip
+
+# Build outputs
+dist/
+CubismSdkForWeb-5-r.4/Samples/TypeScript/Demo/dist/

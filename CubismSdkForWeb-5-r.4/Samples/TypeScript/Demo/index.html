@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>fay live2d工程</title>
+  <style>
+    html, body {
+      overflow: hidden;
+      margin: 0;
+    }
+    html {
+      overscroll-behavior-x: none;
+      touch-action: none;
+    }
+    body {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    body > canvas:only-child {
+      width: 100vw;
+      height: 100vh;
+    }
+    /* ✅ 切换按钮样式 */
+    #desk-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: background-color 0.3s;
+    }
+    #desk-toggle:hover {
+      background-color: #0056b3;
+    }
+    #desk-toggle:active {
+      transform: translateY(2px);
+    }
+    #desk-toggle.active {
+      background-color: #28a745;
+    }
+  </style>
+  <!-- Live2DCubismCore script -->
+  <script src = "./Core/live2dcubismcore.js"></script>
+  <!-- Build script -->
+  <script src = "./src/main.ts" type="module"></script>
+</head>
+<body>
+  <button id="desk-toggle">🪑 吧台模式</button>
+</body>
+</html>
