@@ -9,7 +9,7 @@ Mate Human 是一个 Live2D 数字人前端工程，通过 WebSocket 连接 [Fay
 
 ## 效果展示
 
-![效果展示](images/效果展示.png)
+![效果展示](images/eg-mata-human.png)
 
 ## 架构
 
