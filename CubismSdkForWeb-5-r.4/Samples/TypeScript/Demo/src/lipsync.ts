@@ -19,6 +19,11 @@ export class LipSync {
     private totalDuration: number = 0;  // 总时长（毫秒）
     private elapsedTimeProvider: ElapsedTimeProvider | null = null;
 
+    // 自由模式（无Lips数据时，模拟嘴型开合）
+    private freeMode = false;
+    private freeModeStart = 0;
+    private freeModeDuration = 0;
+
     // OVR LipSync的15种viseme到嘴型开合度的映射
     private visemeMap: { [key: string]: number } = {
         'sil': 0.0,   // 静音
@@ -60,16 +65,30 @@ export class LipSync {
 
     /**
      * 开始新的嘴型序列
+     * 如果 lips 为空，则进入自由模式模拟嘴型开合
+     * @param durationMs 可选的音频总时长（毫秒），自由模式使用
      */
-    startLipSync(lips: LipData[], elapsedTimeProvider?: ElapsedTimeProvider): void {
+    startLipSync(lips: LipData[], durationMs?: number): void;
+    startLipSync(lips: LipData[], elapsedTimeProvider?: ElapsedTimeProvider): void;
+    startLipSync(lips: LipData[], param?: ElapsedTimeProvider | number): void {
         if (!lips || lips.length === 0) {
-            console.warn('[LipSync] 收到空的嘴型数据');
+            // 没有Lips数据时进入自由模式，模拟自然嘴型开合
+            this.currentLips = null;
+            this.freeMode = true;
+            this.freeModeStart = Date.now();
+            if (typeof param === 'number' && param > 0) {
+                this.freeModeDuration = param;
+            } else {
+                this.freeModeDuration = 3000; // 默认3秒
+            }
+            console.log(`[LipSync] 自由模式启动，持续 ${this.freeModeDuration}ms`);
             return;
         }
 
+        this.freeMode = false;
         this.currentLips = lips;
         this.startTime = Date.now();
-        this.elapsedTimeProvider = elapsedTimeProvider || null;
+        this.elapsedTimeProvider = (typeof param === 'function') ? param : null;
 
         // 计算总时长
         this.totalDuration = lips.reduce((sum, lip) => sum + lip.Time, 0);
@@ -81,6 +100,31 @@ export class LipSync {
      * 更新嘴型参数（在每帧渲染中调用）
      */
     update(): void {
+        // 自由模式：用正弦波 + 随机噪声模拟嘴型开合
+        if (this.freeMode) {
+            const elapsed = Date.now() - this.freeModeStart;
+            if (elapsed >= this.freeModeDuration) {
+                this.freeMode = false;
+                // 平滑闭回嘴巴
+                if (this.currentLipValue > 0.01) {
+                    this.currentLipValue = this.currentLipValue + (0 - this.currentLipValue) * this.smoothingFactor;
+                    this.setMouthValue(this.currentLipValue);
+                }
+                return;
+            }
+
+            // 用正弦波模拟自然说话节奏，叠加随机抖动
+            const t = elapsed / 1000;
+            const sineVal = (Math.sin(t * 5.0) + 1) * 0.35; // 0-0.7 范围
+            const noiseVal = Math.sin(t * 13.7) * 0.15 + Math.sin(t * 7.3) * 0.1; // -0.25 到 0.25
+            const targetValue = Math.max(0.05, Math.min(0.85, sineVal + noiseVal));
+
+            // 平滑过渡
+            this.currentLipValue = this.currentLipValue + (targetValue - this.currentLipValue) * this.smoothingFactor;
+            this.setMouthValue(this.currentLipValue);
+            return;
+        }
+
         // 如果没有嘴型数据，重置为闭合
         if (!this.currentLips || this.currentLips.length === 0) {
             if (this.currentLipValue > 0.01) {
@@ -144,6 +188,7 @@ export class LipSync {
     reset(): void {
         this.currentLipValue = 0.0;
         this.currentLips = null;
+        this.freeMode = false;
         this.elapsedTimeProvider = null;
         this.setMouthValue(0.0);
     }

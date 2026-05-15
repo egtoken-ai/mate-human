@@ -1210,16 +1210,6 @@ export class LAppModel extends CubismUserModel {
       this.hideAudioUnlockButton();
     }
 
-    if (
-      this._fayAudioPlaying &&
-      (!this._activeFayAudio || this._activeFayAudio.ended || this._activeFayAudio.error !== null)
-    ) {
-      console.warn(
-        `[LAppModel] 检测到网页端音频状态卡住，重置队列状态: reason=${reason}`
-      );
-      this.stopActiveFayAudio(false);
-    }
-
     if (this._fayAudioBlockedByAutoplay) {
       console.warn(
         `[LAppModel] 音频队列暂停中：浏览器仍在拦截自动播放，queue=${this._fayAudioQueue.length}, reason=${reason}`
@@ -1229,10 +1219,6 @@ export class LAppModel extends CubismUserModel {
     }
 
     if (this._fayAudioPlaying) {
-      const audio = this._activeFayAudio;
-      console.log(
-        `[LAppModel] 音频队列等待当前分片播放完成，queue=${this._fayAudioQueue.length}, reason=${reason}, paused=${audio?.paused ?? 'n/a'}, ended=${audio?.ended ?? 'n/a'}, currentTime=${audio?.currentTime ?? 'n/a'}`
-      );
       return;
     }
 
@@ -1259,22 +1245,14 @@ export class LAppModel extends CubismUserModel {
     }
 
     if (message.Data.IsFirst === 1) {
-      const wasPlaying = this._fayAudioPlaying;
-      this._fayAudioStreamId += 1;
       console.log(
-        `[LAppModel] New Fay audio stream started: streamId=${this._fayAudioStreamId}`
+        `[LAppModel] New Fay audio stream started: streamId=${this._fayAudioStreamId + 1}`
       );
-      this._fayAudioQueue = [];
-      if (wasPlaying) {
-        console.log(
-          '[LAppModel] 当前分片仍在播放，新流将等待当前分片结束后接管播放'
-        );
-      } else {
-        this.stopActiveFayAudio(false);
-      }
-    } else if (this._fayAudioStreamId === 0) {
+    }
+
+    // 统一使用同一个 streamId，所有分片按序播放
+    if (this._fayAudioStreamId === 0) {
       this._fayAudioStreamId = 1;
-      console.log('[LAppModel] 前端在中途接入音频流，创建默认 streamId=1');
     }
 
     const lips = message.Data.Lips || [];
@@ -1310,14 +1288,6 @@ export class LAppModel extends CubismUserModel {
       return;
     }
 
-    if (nextSegment.streamId !== this._fayAudioStreamId) {
-      console.log(
-        `[LAppModel] Skip stale queued audio: streamId=${nextSegment.streamId}, current=${this._fayAudioStreamId}`
-      );
-      void this.playNextQueuedFayAudio();
-      return;
-    }
-
     console.log(
       `[LAppModel] Audio dequeued: remaining=${this._fayAudioQueue.length}, streamId=${nextSegment.streamId}, text="${nextSegment.text}"`
     );
@@ -1331,13 +1301,31 @@ export class LAppModel extends CubismUserModel {
     audio.muted = false;
     audio.volume = 1.0;
     this._activeFayAudio = audio;
-    const fallbackTimeoutMs = Math.max(3000, nextSegment.durationMs + 2500);
-    let fallbackTimer: number | null = window.setTimeout(() => {
-      console.warn(
-        `[LAppModel] 网页端音频播放超时兜底触发，强制切换下一段: timeout=${fallbackTimeoutMs}ms`
-      );
-      cleanup();
-    }, fallbackTimeoutMs);
+
+    // 等待音频元数据加载完成，获取实际时长来计算超时
+    let fallbackTimer: number | null = null;
+    const startFallbackTimer = (durationMs: number) => {
+      const timeoutMs = Math.max(durationMs + 5000, 10000); // 实际时长 + 5s 余量，最少10秒
+      fallbackTimer = window.setTimeout(() => {
+        console.warn(
+          `[LAppModel] 网页端音频播放超时触法，强制切换下一段: timeout=${timeoutMs}ms, duration=${durationMs}ms`
+        );
+        cleanup();
+      }, timeoutMs);
+    };
+
+    // 尝试从 audio.duration 获取时长（部分浏览器需要 loadedmetadata）
+    const onMetaLoaded = () => {
+      if (fallbackTimer) return; // 已有 fallback
+      const dur = Number.isFinite(audio.duration) && audio.duration > 0
+        ? audio.duration * 1000
+        : nextSegment.durationMs || 10000;
+      startFallbackTimer(dur);
+    };
+
+    // 有些浏览器 loadedmetadata 在 play() 前不会触发，所以也用 play() 后的 canplay
+    audio.addEventListener('loadedmetadata', onMetaLoaded, { once: true });
+    audio.addEventListener('canplay', onMetaLoaded, { once: true });
 
     let cleanedUp = false;
     const cleanup = (): void => {
@@ -1380,24 +1368,25 @@ export class LAppModel extends CubismUserModel {
       this.hideAudioUnlockButton();
 
       if (this._lipSync) {
-        this._lipSync.startLipSync(nextSegment.lips, () => {
-          if (this._activeFayAudio !== audio) {
-            return null;
-          }
+        // 无论是否有Lips数据，都启动口型同步（无数据时进入自由模式）
+        const audioDurationMs = Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration * 1000
+          : nextSegment.durationMs || 0;
 
-          const audioDurationMs =
-            Number.isFinite(audio.duration) && audio.duration > 0
-              ? audio.duration * 1000
-              : 0;
-
-          if (audioDurationMs > 0 && nextSegment.durationMs > 0) {
-            return (
-              (audio.currentTime * 1000) / audioDurationMs
-            ) * nextSegment.durationMs;
-          }
-
-          return audio.currentTime * 1000;
-        });
+        if (nextSegment.lips.length > 0) {
+          this._lipSync.startLipSync(nextSegment.lips, () => {
+            if (this._activeFayAudio !== audio) {
+              return null;
+            }
+            if (audioDurationMs > 0 && nextSegment.durationMs > 0) {
+              return (audio.currentTime * 1000 / audioDurationMs) * nextSegment.durationMs;
+            }
+            return audio.currentTime * 1000;
+          });
+        } else {
+          // 无Lips数据，用音频时长启动自由模式口型
+          this._lipSync.startLipSync([], audioDurationMs || 10000);
+        }
       }
     } catch (error) {
       if (this.isAutoplayBlockedError(error)) {
@@ -1620,11 +1609,6 @@ export class LAppModel extends CubismUserModel {
     });
     document.addEventListener('keydown', this.handleFayAudioUserGesture);
     document.addEventListener('visibilitychange', this.handleFayAudioVisibilityChange);
-    if (this._fayAudioRecoveryTimer === null) {
-      this._fayAudioRecoveryTimer = window.setInterval(() => {
-        this.resumeQueuedFayAudio('heartbeat');
-      }, 1000);
-    }
 
     // 连接到Fay
     this._fayClient.connect();
