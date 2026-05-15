@@ -1579,11 +1579,6 @@ export class LAppModel extends CubismUserModel {
           this.setExpression('F01');
         }
 
-        // --- 文字显示 ---
-        if (message.Data.Text) {
-          this._currentDisplayText = message.Data.Text;
-        }
-
         // --- 音频与嘴型同步 ---
         this.queueFayAudio(message);
       } else {
