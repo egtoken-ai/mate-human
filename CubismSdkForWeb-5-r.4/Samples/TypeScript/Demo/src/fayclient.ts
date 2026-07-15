@@ -34,6 +34,7 @@ export interface FayMessage {
     MotionNo?: number;
     MotionGroup?: string;
     Action?: FayAction;
+    EmotionDescriptions?: string[];
     [key: string]: any;
   };
   Username: string;
@@ -51,7 +52,7 @@ export class FayClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
-  constructor(url: string, username: string = 'User') {
+  constructor(url: string, username: string = "User") {
     this.url = url;
     this.username = username;
   }
@@ -62,7 +63,7 @@ export class FayClient {
       (this.ws.readyState === WebSocket.CONNECTING ||
         this.ws.readyState === WebSocket.OPEN)
     ) {
-      console.log('[FayClient] Already connected or connecting');
+      console.log("[FayClient] Already connected or connecting");
       return;
     }
 
@@ -72,41 +73,41 @@ export class FayClient {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
-        console.log('[FayClient] Connected to Fay server');
+        console.log("[FayClient] Connected to Fay server");
         this.reconnectAttempts = 0;
 
         this.send({
           Username: this.username,
-          Output: true
+          Output: true,
         });
 
         this.onConnectedCallback?.();
       };
 
-      this.ws.onmessage = event => {
+      this.ws.onmessage = (event) => {
         try {
           const message: FayMessage = JSON.parse(event.data);
           console.log(
-            '[FayClient] Received message with Lips data:',
-            message.Data.Lips?.length || 0
+            "[FayClient] Received message with Lips data:",
+            message.Data.Lips?.length || 0,
           );
           this.onMessageCallback?.(message);
         } catch (error) {
-          console.error('[FayClient] Failed to parse message:', error);
+          console.error("[FayClient] Failed to parse message:", error);
         }
       };
 
       this.ws.onclose = () => {
-        console.log('[FayClient] Disconnected from Fay server');
+        console.log("[FayClient] Disconnected from Fay server");
         this.onDisconnectedCallback?.();
         this.scheduleReconnect();
       };
 
-      this.ws.onerror = error => {
-        console.error('[FayClient] WebSocket error:', error);
+      this.ws.onerror = (error) => {
+        console.error("[FayClient] WebSocket error:", error);
       };
     } catch (error) {
-      console.error('[FayClient] Failed to create WebSocket:', error);
+      console.error("[FayClient] Failed to create WebSocket:", error);
       this.scheduleReconnect();
     }
   }
@@ -117,12 +118,12 @@ export class FayClient {
       return;
     }
 
-    console.warn('[FayClient] WebSocket is not connected, cannot send message');
+    console.warn("[FayClient] WebSocket is not connected, cannot send message");
   }
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('[FayClient] Max reconnect attempts reached');
+      console.error("[FayClient] Max reconnect attempts reached");
       return;
     }
 
@@ -133,7 +134,7 @@ export class FayClient {
     this.reconnectAttempts++;
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     console.log(
-      `[FayClient] Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+      `[FayClient] Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
     );
 
     this.reconnectTimer = window.setTimeout(() => {

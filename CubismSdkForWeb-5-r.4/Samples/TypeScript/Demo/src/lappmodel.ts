@@ -5,52 +5,52 @@
  * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
-import { CubismDefaultParameterId } from '@framework/cubismdefaultparameterid';
-import { CubismModelSettingJson } from '@framework/cubismmodelsettingjson';
+import { CubismDefaultParameterId } from "@framework/cubismdefaultparameterid";
+import { CubismModelSettingJson } from "@framework/cubismmodelsettingjson";
 import {
   BreathParameterData,
-  CubismBreath
-} from '@framework/effect/cubismbreath';
-import { CubismEyeBlink } from '@framework/effect/cubismeyeblink';
-import { ICubismModelSetting } from '@framework/icubismmodelsetting';
-import { CubismIdHandle } from '@framework/id/cubismid';
-import { CubismFramework } from '@framework/live2dcubismframework';
-import { CubismMatrix44 } from '@framework/math/cubismmatrix44';
-import { CubismUserModel } from '@framework/model/cubismusermodel';
+  CubismBreath,
+} from "@framework/effect/cubismbreath";
+import { CubismEyeBlink } from "@framework/effect/cubismeyeblink";
+import { ICubismModelSetting } from "@framework/icubismmodelsetting";
+import { CubismIdHandle } from "@framework/id/cubismid";
+import { CubismFramework } from "@framework/live2dcubismframework";
+import { CubismMatrix44 } from "@framework/math/cubismmatrix44";
+import { CubismUserModel } from "@framework/model/cubismusermodel";
 import {
   ACubismMotion,
   BeganMotionCallback,
-  FinishedMotionCallback
-} from '@framework/motion/acubismmotion';
-import { CubismMotion } from '@framework/motion/cubismmotion';
+  FinishedMotionCallback,
+} from "@framework/motion/acubismmotion";
+import { CubismMotion } from "@framework/motion/cubismmotion";
 import {
   CubismMotionQueueEntryHandle,
-  InvalidMotionQueueEntryHandleValue
-} from '@framework/motion/cubismmotionqueuemanager';
-import { csmMap } from '@framework/type/csmmap';
-import { csmRect } from '@framework/type/csmrectf';
-import { csmString } from '@framework/type/csmstring';
-import { csmVector } from '@framework/type/csmvector';
+  InvalidMotionQueueEntryHandleValue,
+} from "@framework/motion/cubismmotionqueuemanager";
+import { csmMap } from "@framework/type/csmmap";
+import { csmRect } from "@framework/type/csmrectf";
+import { csmString } from "@framework/type/csmstring";
+import { csmVector } from "@framework/type/csmvector";
 import {
   CSM_ASSERT,
   CubismLogError,
-  CubismLogInfo
-} from '@framework/utils/cubismdebug';
+  CubismLogInfo,
+} from "@framework/utils/cubismdebug";
 
-import * as LAppDefine from './lappdefine';
-import { LAppPal } from './lapppal';
-import { TextureInfo } from './lapptexturemanager';
-import { LAppWavFileHandler } from './lappwavfilehandler';
-import { CubismMoc } from '@framework/model/cubismmoc';
-import { LAppDelegate } from './lappdelegate';
-import { LAppSubdelegate } from './lappsubdelegate';
-import { FayAction, FayClient, FayMessage, LipData } from './fayclient';
+import * as LAppDefine from "./lappdefine";
+import { LAppPal } from "./lapppal";
+import { TextureInfo } from "./lapptexturemanager";
+import { LAppWavFileHandler } from "./lappwavfilehandler";
+import { CubismMoc } from "@framework/model/cubismmoc";
+import { LAppDelegate } from "./lappdelegate";
+import { LAppSubdelegate } from "./lappsubdelegate";
+import { FayAction, FayClient, FayMessage, LipData } from "./fayclient";
 import {
   resolveActionExpression,
   resolveActionMotion,
-  resolveActionMotionNo
-} from './live2d-action-adapter';
-import { LipSync } from './lipsync';
+  resolveActionMotionNo,
+} from "./live2d-action-adapter";
+import { LipSync } from "./lipsync";
 
 enum LoadStep {
   LoadAssets,
@@ -75,7 +75,7 @@ enum LoadStep {
   CompleteSetupModel,
   LoadTexture,
   WaitLoadTexture,
-  CompleteSetup
+  CompleteSetup,
 }
 
 interface FayAudioSegment {
@@ -102,11 +102,11 @@ export class LAppModel extends CubismUserModel {
     this._modelHomeDir = dir;
 
     fetch(`${this._modelHomeDir}${fileName}`)
-      .then(response => response.arrayBuffer())
-      .then(arrayBuffer => {
+      .then((response) => response.arrayBuffer())
+      .then((arrayBuffer) => {
         const setting: ICubismModelSetting = new CubismModelSettingJson(
           arrayBuffer,
-          arrayBuffer.byteLength
+          arrayBuffer.byteLength,
         );
 
         // ステートを更新
@@ -115,7 +115,7 @@ export class LAppModel extends CubismUserModel {
         // 結果を保存
         this.setupModel(setting);
       })
-      .catch(error => {
+      .catch((error) => {
         // model3.json読み込みでエラーが発生した時点で描画は不可能なので、setupせずエラーをcatchして何もしない
         CubismLogError(`Failed to load file ${this._modelHomeDir}${fileName}`);
       });
@@ -134,21 +134,21 @@ export class LAppModel extends CubismUserModel {
     this._modelSetting = setting;
 
     // CubismModel
-    if (this._modelSetting.getModelFileName() != '') {
+    if (this._modelSetting.getModelFileName() != "") {
       const modelFileName = this._modelSetting.getModelFileName();
 
       fetch(`${this._modelHomeDir}${modelFileName}`)
-        .then(response => {
+        .then((response) => {
           if (response.ok) {
             return response.arrayBuffer();
           } else if (response.status >= 400) {
             CubismLogError(
-              `Failed to load file ${this._modelHomeDir}${modelFileName}`
+              `Failed to load file ${this._modelHomeDir}${modelFileName}`,
             );
             return new ArrayBuffer(0);
           }
         })
-        .then(arrayBuffer => {
+        .then((arrayBuffer) => {
           this.loadModel(arrayBuffer, this._mocConsistency);
           this._state = LoadStep.LoadExpression;
 
@@ -158,7 +158,7 @@ export class LAppModel extends CubismUserModel {
 
       this._state = LoadStep.WaitLoadModel;
     } else {
-      LAppPal.printMessage('Model data does not exist.');
+      LAppPal.printMessage("Model data does not exist.");
     }
 
     // Expression
@@ -172,27 +172,27 @@ export class LAppModel extends CubismUserModel {
             this._modelSetting.getExpressionFileName(i);
 
           fetch(`${this._modelHomeDir}${expressionFileName}`)
-            .then(response => {
+            .then((response) => {
               if (response.ok) {
                 return response.arrayBuffer();
               } else if (response.status >= 400) {
                 CubismLogError(
-                  `Failed to load file ${this._modelHomeDir}${expressionFileName}`
+                  `Failed to load file ${this._modelHomeDir}${expressionFileName}`,
                 );
                 // ファイルが存在しなくてもresponseはnullを返却しないため、空のArrayBufferで対応する
                 return new ArrayBuffer(0);
               }
             })
-            .then(arrayBuffer => {
+            .then((arrayBuffer) => {
               const motion: ACubismMotion = this.loadExpression(
                 arrayBuffer,
                 arrayBuffer.byteLength,
-                expressionName
+                expressionName,
               );
 
               if (this._expressions.getValue(expressionName) != null) {
                 ACubismMotion.delete(
-                  this._expressions.getValue(expressionName)
+                  this._expressions.getValue(expressionName),
                 );
                 this._expressions.setValue(expressionName, null);
               }
@@ -220,21 +220,21 @@ export class LAppModel extends CubismUserModel {
 
     // Physics
     const loadCubismPhysics = (): void => {
-      if (this._modelSetting.getPhysicsFileName() != '') {
+      if (this._modelSetting.getPhysicsFileName() != "") {
         const physicsFileName = this._modelSetting.getPhysicsFileName();
 
         fetch(`${this._modelHomeDir}${physicsFileName}`)
-          .then(response => {
+          .then((response) => {
             if (response.ok) {
               return response.arrayBuffer();
             } else if (response.status >= 400) {
               CubismLogError(
-                `Failed to load file ${this._modelHomeDir}${physicsFileName}`
+                `Failed to load file ${this._modelHomeDir}${physicsFileName}`,
               );
               return new ArrayBuffer(0);
             }
           })
-          .then(arrayBuffer => {
+          .then((arrayBuffer) => {
             this.loadPhysics(arrayBuffer, arrayBuffer.byteLength);
 
             this._state = LoadStep.LoadPose;
@@ -253,21 +253,21 @@ export class LAppModel extends CubismUserModel {
 
     // Pose
     const loadCubismPose = (): void => {
-      if (this._modelSetting.getPoseFileName() != '') {
+      if (this._modelSetting.getPoseFileName() != "") {
         const poseFileName = this._modelSetting.getPoseFileName();
 
         fetch(`${this._modelHomeDir}${poseFileName}`)
-          .then(response => {
+          .then((response) => {
             if (response.ok) {
               return response.arrayBuffer();
             } else if (response.status >= 400) {
               CubismLogError(
-                `Failed to load file ${this._modelHomeDir}${poseFileName}`
+                `Failed to load file ${this._modelHomeDir}${poseFileName}`,
               );
               return new ArrayBuffer(0);
             }
           })
-          .then(arrayBuffer => {
+          .then((arrayBuffer) => {
             this.loadPose(arrayBuffer, arrayBuffer.byteLength);
 
             this._state = LoadStep.SetupEyeBlink;
@@ -301,27 +301,33 @@ export class LAppModel extends CubismUserModel {
 
       const breathParameters: csmVector<BreathParameterData> = new csmVector();
       breathParameters.pushBack(
-        new BreathParameterData(this._idParamAngleX, 0.0, 15.0, 6.5345, 0.5)
+        new BreathParameterData(this._idParamAngleX, 0.0, 15.0, 6.5345, 0.5),
       );
       breathParameters.pushBack(
-        new BreathParameterData(this._idParamAngleY, 0.0, 8.0, 3.5345, 0.5)
+        new BreathParameterData(this._idParamAngleY, 0.0, 8.0, 3.5345, 0.5),
       );
       breathParameters.pushBack(
-        new BreathParameterData(this._idParamAngleZ, 0.0, 10.0, 5.5345, 0.5)
+        new BreathParameterData(this._idParamAngleZ, 0.0, 10.0, 5.5345, 0.5),
       );
       breathParameters.pushBack(
-        new BreathParameterData(this._idParamBodyAngleX, 0.0, 4.0, 15.5345, 0.5)
+        new BreathParameterData(
+          this._idParamBodyAngleX,
+          0.0,
+          4.0,
+          15.5345,
+          0.5,
+        ),
       );
       breathParameters.pushBack(
         new BreathParameterData(
           CubismFramework.getIdManager().getId(
-            CubismDefaultParameterId.ParamBreath
+            CubismDefaultParameterId.ParamBreath,
           ),
           0.5,
           0.5,
           3.2345,
-          1
-        )
+          1,
+        ),
       );
 
       this._breath.setParameters(breathParameters);
@@ -333,21 +339,21 @@ export class LAppModel extends CubismUserModel {
 
     // UserData
     const loadUserData = (): void => {
-      if (this._modelSetting.getUserDataFile() != '') {
+      if (this._modelSetting.getUserDataFile() != "") {
         const userDataFile = this._modelSetting.getUserDataFile();
 
         fetch(`${this._modelHomeDir}${userDataFile}`)
-          .then(response => {
+          .then((response) => {
             if (response.ok) {
               return response.arrayBuffer();
             } else if (response.status >= 400) {
               CubismLogError(
-                `Failed to load file ${this._modelHomeDir}${userDataFile}`
+                `Failed to load file ${this._modelHomeDir}${userDataFile}`,
               );
               return new ArrayBuffer(0);
             }
           })
-          .then(arrayBuffer => {
+          .then((arrayBuffer) => {
             this.loadUserData(arrayBuffer, arrayBuffer.byteLength);
 
             this._state = LoadStep.SetupEyeBlinkIds;
@@ -372,7 +378,7 @@ export class LAppModel extends CubismUserModel {
 
       for (let i = 0; i < eyeBlinkIdCount; ++i) {
         this._eyeBlinkIds.pushBack(
-          this._modelSetting.getEyeBlinkParameterId(i)
+          this._modelSetting.getEyeBlinkParameterId(i),
         );
       }
 
@@ -400,7 +406,7 @@ export class LAppModel extends CubismUserModel {
       const layout: csmMap<string, number> = new csmMap<string, number>();
 
       if (this._modelSetting == null || this._modelMatrix == null) {
-        CubismLogError('Failed to setupLayout().');
+        CubismLogError("Failed to setupLayout().");
         return;
       }
 
@@ -430,7 +436,9 @@ export class LAppModel extends CubismUserModel {
         group[i] = this._modelSetting.getMotionGroupName(i);
         const motionCount = this._modelSetting.getMotionCount(group[i]);
         this._allMotionCount += motionCount;
-        console.log(`[LAppModel]   - 动作组 "${group[i]}": ${motionCount}个动作`);
+        console.log(
+          `[LAppModel]   - 动作组 "${group[i]}": ${motionCount}个动作`,
+        );
       }
 
       console.log(`[LAppModel] 动作总数: ${this._allMotionCount}`);
@@ -475,8 +483,8 @@ export class LAppModel extends CubismUserModel {
         modelTextureNumber++
       ) {
         // テクスチャ名が空文字だった場合はロード・バインド処理をスキップ
-        if (this._modelSetting.getTextureFileName(modelTextureNumber) == '') {
-          console.log('getTextureFileName null');
+        if (this._modelSetting.getTextureFileName(modelTextureNumber) == "") {
+          console.log("getTextureFileName null");
           continue;
         }
 
@@ -538,25 +546,31 @@ export class LAppModel extends CubismUserModel {
     if (this._motionManager.isFinished()) {
       // モーションの再生がない場合、待機モーションの中からランダムで再生する
       // 每5秒打印一次调试信息
-      if (!(this as any)['lastIdleLog'] || Date.now() - (this as any)['lastIdleLog'] > 5000) {
-        console.log('[LAppModel] 所有动作已完成，启动随机待机动作');
-        (this as any)['lastIdleLog'] = Date.now();
+      if (
+        !(this as any)["lastIdleLog"] ||
+        Date.now() - (this as any)["lastIdleLog"] > 5000
+      ) {
+        console.log("[LAppModel] 所有动作已完成，启动随机待机动作");
+        (this as any)["lastIdleLog"] = Date.now();
       }
       // ✅ 清除保留的优先级，确保Idle动作能够播放
       this._motionManager.setReservePriority(LAppDefine.PriorityNone);
       this.startRandomMotion(
         LAppDefine.MotionGroupIdle,
-        LAppDefine.PriorityIdle
+        LAppDefine.PriorityIdle,
       );
     } else {
       motionUpdated = this._motionManager.updateMotion(
         this._model,
-        deltaTimeSeconds
+        deltaTimeSeconds,
       ); // モーションを更新
       // 每5秒打印一次调试信息
-      if (!(this as any)['lastMotionUpdateLog'] || Date.now() - (this as any)['lastMotionUpdateLog'] > 5000) {
+      if (
+        !(this as any)["lastMotionUpdateLog"] ||
+        Date.now() - (this as any)["lastMotionUpdateLog"] > 5000
+      ) {
         console.log(`[LAppModel] 动作更新中: motionUpdated=${motionUpdated}`);
-        (this as any)['lastMotionUpdateLog'] = Date.now();
+        (this as any)["lastMotionUpdateLog"] = Date.now();
       }
     }
     this._model.saveParameters(); // 状態を保存
@@ -580,13 +594,13 @@ export class LAppModel extends CubismUserModel {
     this._model.addParameterValueById(this._idParamAngleY, this._dragY * 30);
     this._model.addParameterValueById(
       this._idParamAngleZ,
-      this._dragX * this._dragY * -30
+      this._dragX * this._dragY * -30,
     );
 
     // ドラッグによる体の向きの調整
     this._model.addParameterValueById(
       this._idParamBodyAngleX,
-      this._dragX * 10
+      this._dragX * 10,
     ); // -10から10の値を加える
 
     // ドラッグによる目の向きの調整
@@ -607,16 +621,22 @@ export class LAppModel extends CubismUserModel {
     // Fay集成：使用我们的LipSync类
     if (this._lipSync) {
       // 每5秒打印一次调试信息
-      if (!(this as any)['lastLipSyncLog'] || Date.now() - (this as any)['lastLipSyncLog'] > 5000) {
-        console.log('[LAppModel] LipSync.update() 调用中');
-        (this as any)['lastLipSyncLog'] = Date.now();
+      if (
+        !(this as any)["lastLipSyncLog"] ||
+        Date.now() - (this as any)["lastLipSyncLog"] > 5000
+      ) {
+        console.log("[LAppModel] LipSync.update() 调用中");
+        (this as any)["lastLipSyncLog"] = Date.now();
       }
       this._lipSync.update();
     } else {
       // 每5秒打印一次警告
-      if (!(this as any)['lastLipSyncWarning'] || Date.now() - (this as any)['lastLipSyncWarning'] > 5000) {
-        console.warn('[LAppModel] _lipSync 为 null，Fay集成可能未初始化');
-        (this as any)['lastLipSyncWarning'] = Date.now();
+      if (
+        !(this as any)["lastLipSyncWarning"] ||
+        Date.now() - (this as any)["lastLipSyncWarning"] > 5000
+      ) {
+        console.warn("[LAppModel] _lipSync 为 null，Fay集成可能未初始化");
+        (this as any)["lastLipSyncWarning"] = Date.now();
       }
     }
 
@@ -626,14 +646,20 @@ export class LAppModel extends CubismUserModel {
       const interval = 4000 + Math.random() * 3000; // 4-7秒随机间隔
       if (now - this._lastSpeakingGestureTime > interval) {
         this._lastSpeakingGestureTime = now;
-        const motionCount = this._modelSetting.getMotionCount(LAppDefine.MotionGroupTapBody);
+        const motionCount = this._modelSetting.getMotionCount(
+          LAppDefine.MotionGroupTapBody,
+        );
         if (motionCount > 0) {
           // 选取适合说话时的自然手势动作（排除幅度过大的动作）
           const gestureCandidates = [1, 3, 4, 5, 9, 10, 11, 12, 19, 22, 23, 24];
-          const available = gestureCandidates.filter(n => n < motionCount);
+          const available = gestureCandidates.filter((n) => n < motionCount);
           if (available.length > 0) {
             const no = available[Math.floor(Math.random() * available.length)];
-            this.startMotion(LAppDefine.MotionGroupTapBody, no, LAppDefine.PriorityNormal);
+            this.startMotion(
+              LAppDefine.MotionGroupTapBody,
+              no,
+              LAppDefine.PriorityNormal,
+            );
           }
         }
       }
@@ -660,14 +686,16 @@ export class LAppModel extends CubismUserModel {
     no: number,
     priority: number,
     onFinishedMotionHandler?: FinishedMotionCallback,
-    onBeganMotionHandler?: BeganMotionCallback
+    onBeganMotionHandler?: BeganMotionCallback,
   ): CubismMotionQueueEntryHandle {
     if (priority == LAppDefine.PriorityForce) {
       this._motionManager.setReservePriority(priority);
       console.log(`[LAppModel] 使用强制优先级: ${priority}`);
     } else if (!this._motionManager.reserveMotion(priority)) {
       // ========== 优先级不足，无法启动动作 ==========
-      console.error(`[LAppModel] ❌ 优先级不足，无法启动动作: priority=${priority}, group="${group}", no=${no}`);
+      console.error(
+        `[LAppModel] ❌ 优先级不足，无法启动动作: priority=${priority}, group="${group}", no=${no}`,
+      );
       if (this._debugMode) {
         LAppPal.printMessage("[APP]can't start motion.");
       }
@@ -680,7 +708,7 @@ export class LAppModel extends CubismUserModel {
     const motionCount = this._modelSetting.getMotionCount(group);
     if (no < 0 || no >= motionCount) {
       CubismLogError(
-        `[LAppModel] 动作编号超出范围: group="${group}", no=${no}, 总数=${motionCount}`
+        `[LAppModel] 动作编号超出范围: group="${group}", no=${no}, 总数=${motionCount}`,
       );
       return InvalidMotionQueueEntryHandleValue;
     }
@@ -694,21 +722,21 @@ export class LAppModel extends CubismUserModel {
 
     if (motion == null) {
       fetch(`${this._modelHomeDir}${motionFileName}`)
-        .then(response => {
+        .then((response) => {
           if (response.ok) {
             return response.arrayBuffer();
           } else if (response.status >= 400) {
             CubismLogError(
-              `Failed to load file ${this._modelHomeDir}${motionFileName}`
+              `Failed to load file ${this._modelHomeDir}${motionFileName}`,
             );
             return new ArrayBuffer(0);
           }
         })
-        .then(arrayBuffer => {
+        .then((arrayBuffer) => {
           // ========== 检查buffer是否有效 ==========
           if (!arrayBuffer || arrayBuffer.byteLength === 0) {
             CubismLogError(
-              `[LAppModel] 动作文件为空或加载失败: ${motionFileName}`
+              `[LAppModel] 动作文件为空或加载失败: ${motionFileName}`,
             );
             this._motionManager.setReservePriority(LAppDefine.PriorityNone);
             return;
@@ -723,7 +751,7 @@ export class LAppModel extends CubismUserModel {
             this._modelSetting,
             group,
             no,
-            this._motionConsistency
+            this._motionConsistency,
           );
         });
 
@@ -743,7 +771,7 @@ export class LAppModel extends CubismUserModel {
 
     //voice
     const voice = this._modelSetting.getMotionSoundFileName(group, no);
-    if (voice.localeCompare('') != 0) {
+    if (voice.localeCompare("") != 0) {
       let path = voice;
       path = this._modelHomeDir + path;
       this._wavFileHandler.start(path);
@@ -753,13 +781,17 @@ export class LAppModel extends CubismUserModel {
       LAppPal.printMessage(`[APP]start motion: [${group}_${no}]`);
     }
 
-    console.log(`[LAppModel] 调用 motionManager.startMotionPriority: group="${group}", no=${no}, priority=${priority}, autoDelete=${autoDelete}`);
+    console.log(
+      `[LAppModel] 调用 motionManager.startMotionPriority: group="${group}", no=${no}, priority=${priority}, autoDelete=${autoDelete}`,
+    );
     const motionHandle = this._motionManager.startMotionPriority(
       motion,
       autoDelete,
-      priority
+      priority,
     );
-    console.log(`[LAppModel] startMotionPriority 返回: ${motionHandle} ${motionHandle === InvalidMotionQueueEntryHandleValue ? '(失败-1)' : '(成功)'}`);
+    console.log(
+      `[LAppModel] startMotionPriority 返回: ${motionHandle} ${motionHandle === InvalidMotionQueueEntryHandleValue ? "(失败-1)" : "(成功)"}`,
+    );
 
     return motionHandle;
   }
@@ -775,14 +807,14 @@ export class LAppModel extends CubismUserModel {
     group: string,
     priority: number,
     onFinishedMotionHandler?: FinishedMotionCallback,
-    onBeganMotionHandler?: BeganMotionCallback
+    onBeganMotionHandler?: BeganMotionCallback,
   ): CubismMotionQueueEntryHandle {
     if (this._modelSetting.getMotionCount(group) == 0) {
       return InvalidMotionQueueEntryHandleValue;
     }
 
     const no: number = Math.floor(
-      Math.random() * this._modelSetting.getMotionCount(group)
+      Math.random() * this._modelSetting.getMotionCount(group),
     );
 
     return this.startMotion(
@@ -790,7 +822,7 @@ export class LAppModel extends CubismUserModel {
       no,
       priority,
       onFinishedMotionHandler,
-      onBeganMotionHandler
+      onBeganMotionHandler,
     );
   }
 
@@ -838,7 +870,7 @@ export class LAppModel extends CubismUserModel {
    * イベントの発火を受け取る
    */
   public motionEventFired(eventValue: csmString): void {
-    CubismLogInfo('{0} is fired on LAppModel!!', eventValue.s);
+    CubismLogInfo("{0} is fired on LAppModel!!", eventValue.s);
   }
 
   /**
@@ -881,26 +913,26 @@ export class LAppModel extends CubismUserModel {
       const name = `${group}_${i}`;
       if (this._debugMode) {
         LAppPal.printMessage(
-          `[APP]load motion: ${motionFileName} => [${name}]`
+          `[APP]load motion: ${motionFileName} => [${name}]`,
         );
       }
 
       fetch(`${this._modelHomeDir}${motionFileName}`)
-        .then(response => {
+        .then((response) => {
           if (response.ok) {
             return response.arrayBuffer();
           } else if (response.status >= 400) {
             CubismLogError(
-              `Failed to load file ${this._modelHomeDir}${motionFileName}`
+              `Failed to load file ${this._modelHomeDir}${motionFileName}`,
             );
             return new ArrayBuffer(0);
           }
         })
-        .then(arrayBuffer => {
+        .then((arrayBuffer) => {
           // ========== 检查buffer是否有效 ==========
           if (!arrayBuffer || arrayBuffer.byteLength === 0) {
             CubismLogError(
-              `[LAppModel] 预加载动作文件为空或加载失败: ${motionFileName}`
+              `[LAppModel] 预加载动作文件为空或加载失败: ${motionFileName}`,
             );
             // 减少总动作计数，避免等待永远不会完成的加载
             this._allMotionCount--;
@@ -916,7 +948,7 @@ export class LAppModel extends CubismUserModel {
             this._modelSetting,
             group,
             i,
-            this._motionConsistency
+            this._motionConsistency,
           );
 
           if (tmpMotion != null) {
@@ -946,7 +978,7 @@ export class LAppModel extends CubismUserModel {
             this.createRenderer();
             this.setupTextures();
             this.getRenderer().startUp(
-              this._subdelegate.getGlManager().getGl()
+              this._subdelegate.getGlManager().getGl(),
             );
           }
         });
@@ -979,7 +1011,7 @@ export class LAppModel extends CubismUserModel {
 
     this.getRenderer().setRenderState(
       this._subdelegate.getFrameBuffer(),
-      viewport
+      viewport,
     );
     this.getRenderer().drawModel();
   }
@@ -1006,7 +1038,7 @@ export class LAppModel extends CubismUserModel {
     CSM_ASSERT(this._modelSetting.getModelFileName().localeCompare(``));
 
     // CubismModel
-    if (this._modelSetting.getModelFileName() != '') {
+    if (this._modelSetting.getModelFileName() != "") {
       const modelFileName = this._modelSetting.getModelFileName();
 
       const response = await fetch(`${this._modelHomeDir}${modelFileName}`);
@@ -1015,14 +1047,14 @@ export class LAppModel extends CubismUserModel {
       this._consistency = CubismMoc.hasMocConsistency(arrayBuffer);
 
       if (!this._consistency) {
-        CubismLogInfo('Inconsistent MOC3.');
+        CubismLogInfo("Inconsistent MOC3.");
       } else {
-        CubismLogInfo('Consistent MOC3.');
+        CubismLogInfo("Consistent MOC3.");
       }
 
       return this._consistency;
     } else {
-      LAppPal.printMessage('Model data does not exist.');
+      LAppPal.printMessage("Model data does not exist.");
     }
   }
 
@@ -1050,22 +1082,22 @@ export class LAppModel extends CubismUserModel {
     this._userArea = new csmVector<csmRect>();
 
     this._idParamAngleX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleX
+      CubismDefaultParameterId.ParamAngleX,
     );
     this._idParamAngleY = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleY
+      CubismDefaultParameterId.ParamAngleY,
     );
     this._idParamAngleZ = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamAngleZ
+      CubismDefaultParameterId.ParamAngleZ,
     );
     this._idParamEyeBallX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamEyeBallX
+      CubismDefaultParameterId.ParamEyeBallX,
     );
     this._idParamEyeBallY = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamEyeBallY
+      CubismDefaultParameterId.ParamEyeBallY,
     );
     this._idParamBodyAngleX = CubismFramework.getIdManager().getId(
-      CubismDefaultParameterId.ParamBodyAngleX
+      CubismDefaultParameterId.ParamBodyAngleX,
     );
 
     // Fay口型同步参数（需要在模型加载后重新获取）
@@ -1098,7 +1130,7 @@ export class LAppModel extends CubismUserModel {
     this._fayAudioRecoveryTimer = null;
     this._fayAudioUnlockButton = null;
     this._audioMuted = false;
-    this._currentDisplayText = '';
+    this._currentDisplayText = "";
     this._lastSpeakingGestureTime = 0;
   }
 
@@ -1148,36 +1180,36 @@ export class LAppModel extends CubismUserModel {
   _consistency: boolean; // MOC3整合性チェック管理用
 
   private handleFayAudioUserGesture = (): void => {
-    this.resumeQueuedFayAudio('user-gesture', true);
+    this.resumeQueuedFayAudio("user-gesture", true);
   };
 
   private handleFayAudioVisibilityChange = (): void => {
     if (!document.hidden) {
-      this.resumeQueuedFayAudio('tab-visible');
+      this.resumeQueuedFayAudio("tab-visible");
     }
   };
 
   private isAutoplayBlockedError(error: unknown): boolean {
-    if (!error || typeof error !== 'object') {
+    if (!error || typeof error !== "object") {
       return false;
     }
 
     const maybeError = error as { name?: string; message?: string };
-    const name = maybeError.name || '';
-    const message = (maybeError.message || '').toLowerCase();
+    const name = maybeError.name || "";
+    const message = (maybeError.message || "").toLowerCase();
 
     return (
-      name === 'NotAllowedError' ||
-      message.includes('user gesture') ||
-      message.includes('without a user gesture') ||
-      message.includes('play() failed because')
+      name === "NotAllowedError" ||
+      message.includes("user gesture") ||
+      message.includes("without a user gesture") ||
+      message.includes("play() failed because")
     );
   }
 
   private handleAudioUnlockButtonClick = (event: MouseEvent): void => {
     event.preventDefault();
     event.stopPropagation();
-    this.resumeQueuedFayAudio('unlock-button', true);
+    this.resumeQueuedFayAudio("unlock-button", true);
   };
 
   private showAudioUnlockButton(): void {
@@ -1185,29 +1217,29 @@ export class LAppModel extends CubismUserModel {
       return;
     }
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = 'Enable Audio';
-    button.style.position = 'fixed';
-    button.style.left = '50%';
-    button.style.bottom = '24px';
-    button.style.transform = 'translateX(-50%)';
-    button.style.padding = '10px 16px';
-    button.style.border = 'none';
-    button.style.borderRadius = '999px';
-    button.style.background = '#111';
-    button.style.color = '#fff';
-    button.style.fontSize = '14px';
-    button.style.fontWeight = '600';
-    button.style.letterSpacing = '0.2px';
-    button.style.zIndex = '99999';
-    button.style.cursor = 'pointer';
-    button.style.boxShadow = '0 10px 24px rgba(0,0,0,0.28)';
-    button.addEventListener('click', this.handleAudioUnlockButtonClick);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Enable Audio";
+    button.style.position = "fixed";
+    button.style.left = "50%";
+    button.style.bottom = "24px";
+    button.style.transform = "translateX(-50%)";
+    button.style.padding = "10px 16px";
+    button.style.border = "none";
+    button.style.borderRadius = "999px";
+    button.style.background = "#111";
+    button.style.color = "#fff";
+    button.style.fontSize = "14px";
+    button.style.fontWeight = "600";
+    button.style.letterSpacing = "0.2px";
+    button.style.zIndex = "99999";
+    button.style.cursor = "pointer";
+    button.style.boxShadow = "0 10px 24px rgba(0,0,0,0.28)";
+    button.addEventListener("click", this.handleAudioUnlockButtonClick);
     document.body.appendChild(button);
 
     this._fayAudioUnlockButton = button;
-    console.warn('[LAppModel] 浏览器拦截自动播放，已显示音频解锁按钮');
+    console.warn("[LAppModel] 浏览器拦截自动播放，已显示音频解锁按钮");
   }
 
   private hideAudioUnlockButton(): void {
@@ -1216,8 +1248,8 @@ export class LAppModel extends CubismUserModel {
     }
 
     this._fayAudioUnlockButton.removeEventListener(
-      'click',
-      this.handleAudioUnlockButtonClick
+      "click",
+      this.handleAudioUnlockButtonClick,
     );
     this._fayAudioUnlockButton.remove();
     this._fayAudioUnlockButton = null;
@@ -1225,17 +1257,17 @@ export class LAppModel extends CubismUserModel {
 
   private resumeQueuedFayAudio(
     reason: string,
-    clearAutoplayBlock: boolean = false
+    clearAutoplayBlock: boolean = false,
   ): void {
     if (clearAutoplayBlock && this._fayAudioBlockedByAutoplay) {
-      console.log('[LAppModel] 检测到用户交互，重试网页端音频播放');
+      console.log("[LAppModel] 检测到用户交互，重试网页端音频播放");
       this._fayAudioBlockedByAutoplay = false;
       this.hideAudioUnlockButton();
     }
 
     if (this._fayAudioBlockedByAutoplay) {
       console.warn(
-        `[LAppModel] 音频队列暂停中：浏览器仍在拦截自动播放，queue=${this._fayAudioQueue.length}, reason=${reason}`
+        `[LAppModel] 音频队列暂停中：浏览器仍在拦截自动播放，queue=${this._fayAudioQueue.length}, reason=${reason}`,
       );
       this.showAudioUnlockButton();
       return;
@@ -1250,13 +1282,88 @@ export class LAppModel extends CubismUserModel {
     }
 
     console.log(
-      `[LAppModel] 尝试继续播放网页端音频队列，queue=${this._fayAudioQueue.length}, reason=${reason}`
+      `[LAppModel] 尝试继续播放网页端音频队列，queue=${this._fayAudioQueue.length}, reason=${reason}`,
     );
     void this.playNextQueuedFayAudio();
-  };
+  }
+
+  /**
+   * 从文本中提取括号内的情绪/动作描述，返回清理后的纯文本和匹配到的表情名。
+   * 支持全角（）和半角()括号。
+   */
+  private parseEmotionFromText(text: string): {
+    cleanedText: string;
+    expression: string | null;
+  } {
+    // 匹配全角和半角括号内的内容
+    const parenRegex = /[（(][^）)]*[）)]/g;
+    const matches = text.match(parenRegex) || [];
+
+    let expression: string | null = null;
+    const emotionKeywords: Record<string, string> = {
+      // F04: 惊喜/好奇
+      好奇: "F04",
+      惊讶: "F04",
+      惊喜: "F04",
+      吃惊: "F04",
+      瞪大: "F04",
+      眼睛一亮: "F04",
+      兴奋: "F04",
+      // F01: 微笑/开心
+      微笑: "F01",
+      笑: "F01",
+      开心: "F01",
+      高兴: "F01",
+      欢喜: "F01",
+      温柔: "F01",
+      害羞: "F01",
+      脸红: "F01",
+      甜蜜: "F01",
+      得意: "F01",
+      // F02: 生气/不满
+      生气: "F02",
+      怒: "F02",
+      不满: "F02",
+      皱眉: "F02",
+      严肃: "F02",
+      认真: "F02",
+      不悦: "F02",
+      哼: "F02",
+      // F03: 悲伤
+      悲伤: "F03",
+      哭: "F03",
+      难过: "F03",
+      失落: "F03",
+      叹气: "F03",
+      无奈: "F03",
+      沮丧: "F03",
+      遗憾: "F03",
+      歉意: "F03",
+      抱歉: "F03",
+    };
+
+    for (const match of matches) {
+      const inner = match.slice(1, -1); // 去掉括号
+      for (const [keyword, expr] of Object.entries(emotionKeywords)) {
+        if (inner.includes(keyword) && !expression) {
+          expression = expr;
+          console.log(
+            `[LAppModel] 从文本情绪解析: "${inner}" → ${expr} (关键词: ${keyword})`,
+          );
+          break;
+        }
+      }
+    }
+
+    const cleanedText = text
+      .replace(parenRegex, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return { cleanedText, expression };
+  }
 
   private queueFayAudio(message: FayMessage): void {
-    if (message.Data.Key !== 'audio') {
+    if (message.Data.Key !== "audio") {
       return;
     }
 
@@ -1269,7 +1376,7 @@ export class LAppModel extends CubismUserModel {
 
     if (message.Data.IsFirst === 1) {
       console.log(
-        `[LAppModel] New Fay audio stream started: streamId=${this._fayAudioStreamId + 1}`
+        `[LAppModel] New Fay audio stream started: streamId=${this._fayAudioStreamId + 1}`,
       );
     }
 
@@ -1279,30 +1386,34 @@ export class LAppModel extends CubismUserModel {
     }
 
     const lips = message.Data.Lips || [];
-    const durationMs = lips.reduce(
-      (sum, lip) => sum + lip.Time,
-      0
-    );
+    const durationMs = lips.reduce((sum, lip) => sum + lip.Time, 0);
+
+    // 剥离括号内情绪描述，只保留纯文本用于显示
+    const { cleanedText } = this.parseEmotionFromText(message.Data.Text || "");
 
     this._fayAudioQueue.push({
       url: message.Data.HttpValue,
       lips,
-      text: message.Data.Text || '',
+      text: cleanedText,
       durationMs,
       isFirst: message.Data.IsFirst === 1,
       isEnd: message.Data.IsEnd === 1,
-      streamId: this._fayAudioStreamId
+      streamId: this._fayAudioStreamId,
     });
 
     console.log(
-      `[LAppModel] Audio queued: size=${this._fayAudioQueue.length}, streamId=${this._fayAudioStreamId}, isEnd=${message.Data.IsEnd === 1 ? 1 : 0}, text="${message.Data.Text || ''}"`
+      `[LAppModel] Audio queued: size=${this._fayAudioQueue.length}, streamId=${this._fayAudioStreamId}, isEnd=${message.Data.IsEnd === 1 ? 1 : 0}, text="${cleanedText}"`,
     );
 
-    this.resumeQueuedFayAudio('queue');
+    this.resumeQueuedFayAudio("queue");
   }
 
   private async playNextQueuedFayAudio(): Promise<void> {
-    if (this._fayAudioPlaying || this._fayAudioBlockedByAutoplay || this._audioMuted) {
+    if (
+      this._fayAudioPlaying ||
+      this._fayAudioBlockedByAutoplay ||
+      this._audioMuted
+    ) {
       return;
     }
 
@@ -1312,7 +1423,7 @@ export class LAppModel extends CubismUserModel {
     }
 
     console.log(
-      `[LAppModel] Audio dequeued: remaining=${this._fayAudioQueue.length}, streamId=${nextSegment.streamId}, text="${nextSegment.text}"`
+      `[LAppModel] Audio dequeued: remaining=${this._fayAudioQueue.length}, streamId=${nextSegment.streamId}, text="${nextSegment.text}"`,
     );
 
     this.stopActiveFayAudio(false);
@@ -1320,7 +1431,7 @@ export class LAppModel extends CubismUserModel {
     this._currentDisplayText = nextSegment.text;
 
     const audio = new Audio(nextSegment.url);
-    audio.preload = 'auto';
+    audio.preload = "auto";
     audio.muted = false;
     audio.volume = 1.0;
     this._activeFayAudio = audio;
@@ -1331,7 +1442,7 @@ export class LAppModel extends CubismUserModel {
       const timeoutMs = Math.max(durationMs + 5000, 10000); // 实际时长 + 5s 余量，最少10秒
       fallbackTimer = window.setTimeout(() => {
         console.warn(
-          `[LAppModel] 网页端音频播放超时触法，强制切换下一段: timeout=${timeoutMs}ms, duration=${durationMs}ms`
+          `[LAppModel] 网页端音频播放超时触法，强制切换下一段: timeout=${timeoutMs}ms, duration=${durationMs}ms`,
         );
         cleanup();
       }, timeoutMs);
@@ -1340,15 +1451,16 @@ export class LAppModel extends CubismUserModel {
     // 尝试从 audio.duration 获取时长（部分浏览器需要 loadedmetadata）
     const onMetaLoaded = () => {
       if (fallbackTimer) return; // 已有 fallback
-      const dur = Number.isFinite(audio.duration) && audio.duration > 0
-        ? audio.duration * 1000
-        : nextSegment.durationMs || 10000;
+      const dur =
+        Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration * 1000
+          : nextSegment.durationMs || 10000;
       startFallbackTimer(dur);
     };
 
     // 有些浏览器 loadedmetadata 在 play() 前不会触发，所以也用 play() 后的 canplay
-    audio.addEventListener('loadedmetadata', onMetaLoaded, { once: true });
-    audio.addEventListener('canplay', onMetaLoaded, { once: true });
+    audio.addEventListener("loadedmetadata", onMetaLoaded, { once: true });
+    audio.addEventListener("canplay", onMetaLoaded, { once: true });
 
     let cleanedUp = false;
     const cleanup = (): void => {
@@ -1367,18 +1479,18 @@ export class LAppModel extends CubismUserModel {
       }
       this._fayAudioPlaying = false;
       if (this._fayAudioQueue.length === 0) {
-        this._currentDisplayText = '';
+        this._currentDisplayText = "";
       }
       void this.playNextQueuedFayAudio();
     };
 
     audio.onended = () => {
-      console.log('[LAppModel] 网页端音频播放结束');
+      console.log("[LAppModel] 网页端音频播放结束");
       cleanup();
     };
 
     audio.onerror = () => {
-      console.error('[LAppModel] 网页端音频播放失败');
+      console.error("[LAppModel] 网页端音频播放失败");
       if (this._lipSync) {
         this._lipSync.reset();
       }
@@ -1392,9 +1504,10 @@ export class LAppModel extends CubismUserModel {
 
       if (this._lipSync) {
         // 无论是否有Lips数据，都启动口型同步（无数据时进入自由模式）
-        const audioDurationMs = Number.isFinite(audio.duration) && audio.duration > 0
-          ? audio.duration * 1000
-          : nextSegment.durationMs || 0;
+        const audioDurationMs =
+          Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration * 1000
+            : nextSegment.durationMs || 0;
 
         if (nextSegment.lips.length > 0) {
           this._lipSync.startLipSync(nextSegment.lips, () => {
@@ -1402,7 +1515,10 @@ export class LAppModel extends CubismUserModel {
               return null;
             }
             if (audioDurationMs > 0 && nextSegment.durationMs > 0) {
-              return (audio.currentTime * 1000 / audioDurationMs) * nextSegment.durationMs;
+              return (
+                ((audio.currentTime * 1000) / audioDurationMs) *
+                nextSegment.durationMs
+              );
             }
             return audio.currentTime * 1000;
           });
@@ -1415,7 +1531,7 @@ export class LAppModel extends CubismUserModel {
       if (this.isAutoplayBlockedError(error)) {
         console.warn(
           `[LAppModel] 网页端音频播放被浏览器拦截，等待下一次用户交互后重试。queue=${this._fayAudioQueue.length + 1}`,
-          error
+          error,
         );
         this._fayAudioQueue.unshift(nextSegment);
         this._fayAudioBlockedByAutoplay = true;
@@ -1425,7 +1541,10 @@ export class LAppModel extends CubismUserModel {
           this._activeFayAudio = null;
         }
       } else {
-        console.error('[LAppModel] 网页端音频播放失败（非自动播放拦截），跳过当前分片继续', error);
+        console.error(
+          "[LAppModel] 网页端音频播放失败（非自动播放拦截），跳过当前分片继续",
+          error,
+        );
         cleanup();
       }
     }
@@ -1444,7 +1563,7 @@ export class LAppModel extends CubismUserModel {
       audio.onended = null;
       audio.onerror = null;
       audio.pause();
-      audio.removeAttribute('src');
+      audio.removeAttribute("src");
       audio.load();
     }
 
@@ -1454,7 +1573,7 @@ export class LAppModel extends CubismUserModel {
   private startConfiguredMotion(
     motionGroup: string,
     motionNo: number,
-    source: string
+    source: string,
   ): boolean {
     let resolvedGroup = motionGroup || LAppDefine.MotionGroupTapBody;
     let motionCount = this._modelSetting.getMotionCount(resolvedGroup);
@@ -1472,7 +1591,7 @@ export class LAppModel extends CubismUserModel {
     let targetMotionNo = Math.max(0, motionNo - 1);
     if (targetMotionNo < 0 || targetMotionNo >= motionCount) {
       console.warn(
-        `[LAppModel] Motion out of range for ${source}: ${motionNo}, fallback to 1`
+        `[LAppModel] Motion out of range for ${source}: ${motionNo}, fallback to 1`,
       );
       targetMotionNo = 0;
     }
@@ -1486,11 +1605,11 @@ export class LAppModel extends CubismUserModel {
     const motionHandle = this.startMotion(
       resolvedGroup,
       targetMotionNo,
-      LAppDefine.PriorityForce
+      LAppDefine.PriorityForce,
     );
     if (motionHandle === InvalidMotionQueueEntryHandleValue) {
       console.error(
-        `[LAppModel] Failed to start motion for ${source}: ${motionName}`
+        `[LAppModel] Failed to start motion for ${source}: ${motionName}`,
       );
       return false;
     }
@@ -1510,7 +1629,7 @@ export class LAppModel extends CubismUserModel {
     return this.startConfiguredMotion(
       binding.group,
       motionNo,
-      action?.code || 'action'
+      action?.code || "action",
     );
   }
 
@@ -1522,7 +1641,7 @@ export class LAppModel extends CubismUserModel {
 
     this.setExpression(expressionName);
     console.log(
-      `[LAppModel] Expression applied from semantic action ${action?.code}: ${expressionName}`
+      `[LAppModel] Expression applied from semantic action ${action?.code}: ${expressionName}`,
     );
     return true;
   }
@@ -1536,11 +1655,12 @@ export class LAppModel extends CubismUserModel {
       return;
     }
 
-    console.log('[LAppModel] 初始化Fay集成（网页端同步播放音频并驱动口型）');
+    console.log("[LAppModel] 初始化Fay集成（网页端同步播放音频并驱动口型）");
 
     // 获取ParamMouthOpenY的ID（从字符串获取）
-    this._idParamMouthOpenY = CubismFramework.getIdManager().getId('ParamMouthOpenY');
-    console.log('[LAppModel] ParamMouthOpenY ID:', this._idParamMouthOpenY);
+    this._idParamMouthOpenY =
+      CubismFramework.getIdManager().getId("ParamMouthOpenY");
+    console.log("[LAppModel] ParamMouthOpenY ID:", this._idParamMouthOpenY);
 
     // 创建LipSync实例，传入回调函数设置嘴型值
     this._lipSync = new LipSync((value: number) => {
@@ -1553,24 +1673,37 @@ export class LAppModel extends CubismUserModel {
     });
 
     // 创建Fay客户端（使用"User"作为username，与Fay默认用户名匹配）
-    this._fayClient = new FayClient('ws://127.0.0.1:10002', 'User');
+    this._fayClient = new FayClient("ws://127.0.0.1:10002", "User");
 
     // 设置消息回调
     this._fayClient.onMessage((message) => {
-      console.log('[LAppModel] 收到Fay消息:', JSON.stringify(message, null, 2));
-      console.log('[LAppModel] Data.Key:', message.Data?.Key, '| Data.Lips:', message.Data?.Lips?.length ?? 'undefined', '个');
+      console.log("[LAppModel] 收到Fay消息:", JSON.stringify(message, null, 2));
+      console.log(
+        "[LAppModel] Data.Key:",
+        message.Data?.Key,
+        "| Data.Lips:",
+        message.Data?.Lips?.length ?? "undefined",
+        "个",
+      );
 
       // 无论是否有Lips数据，都处理文本、动作和表情
       // 但Lips数据是处理动作/表情的先决条件（Fay在发送音频时总是同时发送Lips）
       if (message.Data) {
         // --- 动作处理 ---
-        const actionMotionApplied = this.applyActionMotion(
-          message.Data.Action
-        );
+        const actionMotionApplied = this.applyActionMotion(message.Data.Action);
         const actionExpressionApplied = this.applyActionExpression(
-          message.Data.Action
+          message.Data.Action,
         );
-        console.log('[LAppModel] 动作结果: applyActionMotion=', actionMotionApplied, '| applyActionExpression=', actionExpressionApplied, '| MotionNo=', message.Data.MotionNo, '| Sentiment=', message.Data.Sentiment);
+        console.log(
+          "[LAppModel] 动作结果: applyActionMotion=",
+          actionMotionApplied,
+          "| applyActionExpression=",
+          actionExpressionApplied,
+          "| MotionNo=",
+          message.Data.MotionNo,
+          "| Sentiment=",
+          message.Data.Sentiment,
+        );
 
         const legacyMotionApplied =
           !actionMotionApplied &&
@@ -1578,7 +1711,7 @@ export class LAppModel extends CubismUserModel {
           this.startConfiguredMotion(
             message.Data.MotionGroup || LAppDefine.MotionGroupTapBody,
             message.Data.MotionNo,
-            'legacy-motion'
+            "legacy-motion",
           );
 
         if (
@@ -1586,47 +1719,75 @@ export class LAppModel extends CubismUserModel {
           !legacyMotionApplied &&
           message.Data.Sentiment !== undefined
         ) {
-          console.log('[LAppModel] 使用情感回退驱动动作, Sentiment=', message.Data.Sentiment);
+          console.log(
+            "[LAppModel] 使用情感回退驱动动作, Sentiment=",
+            message.Data.Sentiment,
+          );
           this.setMotionBySentiment(message.Data.Sentiment);
         }
 
-        if (
-          !actionExpressionApplied &&
-          message.Data.Sentiment !== undefined
-        ) {
+        // 表情优先级：Action > EmotionDescriptions > 文本括号情绪 > Sentiment 回退
+        let expressionApplied = actionExpressionApplied;
+
+        if (!expressionApplied) {
+          // 优先使用 Fay 后端剥离的 EmotionDescriptions
+          const emotionDescs = message.Data.EmotionDescriptions || [];
+          let textExpression: string | null = null;
+          if (emotionDescs.length > 0) {
+            const result = this.parseEmotionFromText(
+              emotionDescs.map((d) => `（${d}）`).join(""),
+            );
+            textExpression = result.expression;
+          }
+          // 回退到从 Text 中解析
+          if (!textExpression) {
+            const result = this.parseEmotionFromText(message.Data.Text || "");
+            textExpression = result.expression;
+          }
+          if (textExpression) {
+            this.setExpression(textExpression);
+            console.log(`[LAppModel] 文本情绪驱动表情: ${textExpression}`);
+            expressionApplied = true;
+          }
+        }
+
+        if (!expressionApplied && message.Data.Sentiment !== undefined) {
           this.setExpressionBySentiment(message.Data.Sentiment);
         }
 
         if (message.Data.IsEnd === 1) {
-          console.log('[LAppModel] 对话结束，恢复开心表情 F01');
-          this.setExpression('F01');
+          console.log("[LAppModel] 对话结束，恢复开心表情 F01");
+          this.setExpression("F01");
         }
 
         // --- 音频与嘴型同步 ---
         this.queueFayAudio(message);
       } else {
-        console.warn('[LAppModel] 收到消息但无Data字段');
+        console.warn("[LAppModel] 收到消息但无Data字段");
       }
     });
 
     // 设置连接成功回调
     this._fayClient.onConnected(() => {
-      console.log('[LAppModel] ✓ Fay WebSocket连接成功');
+      console.log("[LAppModel] ✓ Fay WebSocket连接成功");
     });
 
     // 设置断开连接回调
     this._fayClient.onDisconnected(() => {
-      console.log('[LAppModel] ✗ Fay WebSocket断开连接');
+      console.log("[LAppModel] ✗ Fay WebSocket断开连接");
     });
 
-    document.addEventListener('pointerdown', this.handleFayAudioUserGesture, {
-      passive: true
+    document.addEventListener("pointerdown", this.handleFayAudioUserGesture, {
+      passive: true,
     });
-    document.addEventListener('click', this.handleFayAudioUserGesture, {
-      passive: true
+    document.addEventListener("click", this.handleFayAudioUserGesture, {
+      passive: true,
     });
-    document.addEventListener('keydown', this.handleFayAudioUserGesture);
-    document.addEventListener('visibilitychange', this.handleFayAudioVisibilityChange);
+    document.addEventListener("keydown", this.handleFayAudioUserGesture);
+    document.addEventListener(
+      "visibilitychange",
+      this.handleFayAudioVisibilityChange,
+    );
 
     // 连接到Fay
     this._fayClient.connect();
@@ -1641,20 +1802,20 @@ export class LAppModel extends CubismUserModel {
 
     // 情感映射规则
     if (sentiment >= 1) {
-      expressionName = 'F04'; // 非常积极：惊喜、开心
+      expressionName = "F04"; // 非常积极：惊喜、开心
       console.log(`[LAppModel] 情感值 ${sentiment} → 表情 F04 (惊喜)`);
     } else if (sentiment > 0.3) {
-      expressionName = 'F01'; // 积极：微笑
+      expressionName = "F01"; // 积极：微笑
       console.log(`[LAppModel] 情感值 ${sentiment} → 表情 F01 (微笑)`);
     } else if (sentiment < -0.7) {
-      expressionName = 'F03'; // 非常消极：悲伤
+      expressionName = "F03"; // 非常消极：悲伤
       console.log(`[LAppModel] 情感值 ${sentiment} → 表情 F03 (悲伤)`);
     } else if (sentiment < -0.3) {
-      expressionName = 'F02'; // 消极：生气/不满
+      expressionName = "F02"; // 消极：生气/不满
       console.log(`[LAppModel] 情感值 ${sentiment} → 表情 F02 (生气)`);
     } else {
       // ✅ 中性情感：默认使用微笑表情，避免消极表情残留
-      expressionName = 'F01';
+      expressionName = "F01";
       console.log(`[LAppModel] 情感值 ${sentiment} → 表情 F01 (默认微笑)`);
     }
 
@@ -1672,13 +1833,17 @@ export class LAppModel extends CubismUserModel {
    */
   private setMotionBySentiment(sentiment: number): void {
     let motionNo: number | null = null;
-    let motionDesc = '';
+    let motionDesc = "";
 
     // 获取TapBody组的动作总数
-    const motionCount = this._modelSetting.getMotionCount(LAppDefine.MotionGroupTapBody);
+    const motionCount = this._modelSetting.getMotionCount(
+      LAppDefine.MotionGroupTapBody,
+    );
 
     if (motionCount === 0) {
-      console.log(`[LAppModel] 情感值 ${sentiment} → TapBody组为空，不使用动作`);
+      console.log(
+        `[LAppModel] 情感值 ${sentiment} → TapBody组为空，不使用动作`,
+      );
       return;
     }
 
@@ -1693,41 +1858,49 @@ export class LAppModel extends CubismUserModel {
     if (sentiment >= 1.5) {
       // 非常积极：庆祝、欢呼类动作
       motionNo = this.getRandomMotion([6, 13]); // m06: 庆祝, m13: 欢呼
-      motionDesc = '非常开心（庆祝）';
+      motionDesc = "非常开心（庆祝）";
     } else if (sentiment >= 0.8) {
       // 积极：点头、微笑类动作
       motionNo = this.getRandomMotion([1, 3, 4]); // m01: 点头, m03: 微笑, m04: 开心
-      motionDesc = '开心（点头微笑）';
+      motionDesc = "开心（点头微笑）";
     } else if (sentiment >= 0.3) {
       // 轻微积极：基础肯定动作
       motionNo = 1; // m01: 点头
-      motionDesc = '肯定（点头）';
+      motionDesc = "肯定（点头）";
     } else if (sentiment <= -1.5) {
       // 非常消极：悲伤、沮丧类动作
       motionNo = this.getRandomMotion([8, 15]); // m08: 摇头, m15: 沮丧
-      motionDesc = '非常消极（沮丧）';
+      motionDesc = "非常消极（沮丧）";
     } else if (sentiment <= -0.8) {
       // 消极：否定、不满类动作
       motionNo = 8; // m08: 摇头
-      motionDesc = '否定（摇头）';
+      motionDesc = "否定（摇头）";
     } else if (sentiment <= -0.3) {
       // 轻微消极：轻微不满
       motionNo = this.getRandomMotion([2, 7]); // m02: 不同意, m07: 皱眉
-      motionDesc = '轻微不满';
+      motionDesc = "轻微不满";
     } else {
       // 中性：不使用特殊动作，保持Idle状态
       motionNo = null;
-      motionDesc = '中性';
+      motionDesc = "中性";
     }
 
     // 设置动作
     if (motionNo !== null && motionNo > 0 && motionNo <= motionCount) {
       const targetMotionIndex = motionNo - 1;
       const motionLabel = motionNo < 10 ? `0${motionNo}` : `${motionNo}`;
-      console.log(`[LAppModel] 😊 情感值 ${sentiment} → 动作 m${motionLabel}/${motionCount} (${motionDesc})`);
-      this.startMotion(LAppDefine.MotionGroupTapBody, targetMotionIndex, LAppDefine.PriorityForce);
+      console.log(
+        `[LAppModel] 😊 情感值 ${sentiment} → 动作 m${motionLabel}/${motionCount} (${motionDesc})`,
+      );
+      this.startMotion(
+        LAppDefine.MotionGroupTapBody,
+        targetMotionIndex,
+        LAppDefine.PriorityForce,
+      );
     } else {
-      console.log(`[LAppModel] 情感值 ${sentiment} → ${motionDesc}，保持Idle状态`);
+      console.log(
+        `[LAppModel] 情感值 ${sentiment} → ${motionDesc}，保持Idle状态`,
+      );
     }
   }
 
@@ -1745,7 +1918,7 @@ export class LAppModel extends CubismUserModel {
   public toggleMute(): void {
     if (this._fayAudioBlockedByAutoplay) {
       // 被浏览器拦截时，点击按钮解锁
-      this.resumeQueuedFayAudio('unlock-button', true);
+      this.resumeQueuedFayAudio("unlock-button", true);
       return;
     }
 
@@ -1755,11 +1928,11 @@ export class LAppModel extends CubismUserModel {
       // 静音：停止当前音频并清空队列
       this.stopActiveFayAudio(true);
       this._fayAudioQueue = [];
-      console.log('[LAppModel] 音频已静音');
+      console.log("[LAppModel] 音频已静音");
     } else {
       // 取消静音：继续播放
-      console.log('[LAppModel] 音频已取消静音');
-      this.resumeQueuedFayAudio('unmute');
+      console.log("[LAppModel] 音频已取消静音");
+      this.resumeQueuedFayAudio("unmute");
     }
   }
 
@@ -1767,10 +1940,13 @@ export class LAppModel extends CubismUserModel {
    * 断开Fay连接
    */
   public disconnectFay(): void {
-    document.removeEventListener('pointerdown', this.handleFayAudioUserGesture);
-    document.removeEventListener('click', this.handleFayAudioUserGesture);
-    document.removeEventListener('keydown', this.handleFayAudioUserGesture);
-    document.removeEventListener('visibilitychange', this.handleFayAudioVisibilityChange);
+    document.removeEventListener("pointerdown", this.handleFayAudioUserGesture);
+    document.removeEventListener("click", this.handleFayAudioUserGesture);
+    document.removeEventListener("keydown", this.handleFayAudioUserGesture);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleFayAudioVisibilityChange,
+    );
     if (this._fayAudioRecoveryTimer !== null) {
       clearInterval(this._fayAudioRecoveryTimer);
       this._fayAudioRecoveryTimer = null;
@@ -1780,7 +1956,7 @@ export class LAppModel extends CubismUserModel {
     if (this._fayClient) {
       this._fayClient.disconnect();
       this._fayClient = null;
-      console.log('[LAppModel] Fay连接已断开');
+      console.log("[LAppModel] Fay连接已断开");
     }
 
     this.stopActiveFayAudio(true);
