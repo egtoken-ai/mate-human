@@ -1,0 +1,114 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          echo "diff_size=$(wc -c < pr_diff.txt)" >> $GITHUB_OUTPUT
+          # Truncate to 50k chars to fit within LLM context
+          head -c 50000 pr_diff.txt > pr_diff_truncated.txt
+          echo "Truncated diff to $(wc -c < pr_diff_truncated.txt) bytes"
+
+      - name: Run LLM Code Review
+        id: review
+        if: steps.diff.outputs.diff_size != '0'
+        env:
+          LLM_API_URL: ${{ secrets.LLM_API_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+        run: |
+          set -o pipefail
+          if [ -z "$LLM_API_URL" ]; then
+            echo "::error::LLM_API_URL secret is not configured"
+            exit 1
+          fi
+
+          DIFF_CONTENT=$(cat pr_diff_truncated.txt)
+          # Escape for JSON
+          DIFF_ESCAPED=$(jq -Rs . <<< "$DIFF_CONTENT")
+
+          # Build request payload
+          PAYLOAD=$(jq -n \
+            --arg diff "$DIFF_CONTENT" \
+            --arg model "${LLM_MODEL:-gpt-4o}" \
+            '{
+              model: $model,
+              messages: [
+                {
+                  role: "system",
+                  content: "你是一个专业的代码审查员。请审查以下 Git diff 代码变更，从以下方面给出反馈：\n1. 代码质量：命名、结构、可读性\n2. 潜在 Bug：逻辑错误、边界条件、空指针\n3. 安全问题：注入、敏感信息泄露\n4. 性能问题：不必要的计算、内存泄漏\n5. 改进建议：具体的优化方案\n\n请用中文回复，使用 Markdown 格式。如果没有问题，简要说明代码质量良好即可。"
+                },
+                {
+                  role: "user",
+                  content: ("请审查以下代码变更：\n\n```diff\n" + $diff + "\n```")
+                }
+              ],
+              temperature: 0.3,
+              max_tokens: 2000
+            }')
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "$LLM_API_URL/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $LLM_API_KEY" \
+            -d "$PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::LLM API returned HTTP $HTTP_CODE"
+            echo "$BODY"
+            echo "review_body=LLM API 调用失败 (HTTP $HTTP_CODE)，跳过自动审查。" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          REVIEW=$(echo "$BODY" | jq -r '.choices[0].message.content // "审查结果为空"')
+          echo "review_body<<REVIEW_EOF" >> $GITHUB_OUTPUT
+          echo "$REVIEW" >> $GITHUB_OUTPUT
+          echo "REVIEW_EOF" >> $GITHUB_OUTPUT
+
+      - name: Post review comment
+        if: steps.review.outputs.review_body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEW_BODY: ${{ steps.review.outputs.review_body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_COMMITS: ${{ github.event.pull_request.commits }}
+          PR_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          COMMENT_FILE=$(mktemp)
+          {
+            echo "## 🤖 egtoken-ai Code Review"
+            echo ""
+            echo "PR #${PR_NUMBER} | ${PR_COMMITS} commits | ${PR_FILES} files changed"
+            echo ""
+            echo "---"
+            echo ""
+            echo "$REVIEW_BODY"
+          } > "$COMMENT_FILE"
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$COMMENT_FILE"
